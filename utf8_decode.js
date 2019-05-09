@@ -68,6 +68,7 @@ var utf8Decode = (function() {
       return '';
     }
     text = String(text);
+    
     var result = [],
         char;
 
