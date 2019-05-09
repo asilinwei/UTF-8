@@ -5,11 +5,10 @@ var utf8Decode = (function() {
       length;
 
   var nextByte = function(text) {
-    index += 1;
     if (!text[index]) {
       throw new Error('Invalid UTF-8 sequence');
     }
-    var codePoint = text[index].codePointAt(0) & 0xFF;
+    var codePoint = text[index++].codePointAt(0) & 0xFF;
     if ((codePoint & 0xC0) === 0x80) {
       return codePoint & 0x3F;
     }
@@ -18,28 +17,48 @@ var utf8Decode = (function() {
 
   var baseDecode = function(text) {
     var codePoint,
-        byte1 = text.codePointAt(0) & 0xFF,
+        byte1,
         byte2,
         byte3,
         byte4;  
-
+ 
+    if (!text[index]) {
+      return false;
+    }
+    byte1 = text[index++].codePointAt(0) & 0xFF;
     if ((byte1 & 0x80) === 0) {
-      return String.fromCodePoint(byte1 & 0x7F);
+      codePoint = byte1 & 0x7F;
+      if (codePoint >= 0 && codePoint <= 0x7F) {
+        return String.fromCodePoint(codePoint);
+      }
+      throw new Error('Invalid UTF-8 sequence');
     }    
     if ((byte1 & 0xE0) === 0xC0) {
       byte2 = nextByte(text);
-      return String.fromCodePoint(((byte1 & 0x1F) << 6) | byte2);
+      codePoint = ((byte1 & 0x1F) << 6) | byte2;
+      if (codePoint >= 0x80 && codePoint <= 0x7FF) {
+        return String.fromCodePoint(codePoint);
+      }
+      throw new Error('Invalid UTF-8 sequence');
     }
     if ((byte1 & 0xF0) === 0xE0) {
       byte2 = nextByte(text);
       byte3 = nextByte(text);
-      return String.fromCodePoint(((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3);
+      codePoint = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
+      if (codePoint >= 0x800 && codePoint <= 0xFFFF) {
+        return String.fromCodePoint(codePoint);
+      }
+      throw new Error('Invalid UTF-8 sequence');
     }
     if ((byte1 & 0xF8) === 0xF0) {
       byte2 = nextByte(text);
       byte3 = nextByte(text);
       byte4 = nextByte(text);
-      return String.fromCodePoint(((byte1 & 0x07) << 18) | (byte2 << 12) | (byte3 << 6) | byte4);
+      codePoint = ((byte1 & 0x07) << 18) | (byte2 << 12) | (byte3 << 6) | byte4;
+      if (codePoint >= 0x10000 && codePoint <= 0x10FFFF) {
+        return String.fromCodePoint(codePoint);
+      }
+      throw new Error('Invalid UTF-8 sequence');
     }
     throw new Error('Invalid UTF-8 sequence');
   };
@@ -49,12 +68,15 @@ var utf8Decode = (function() {
       return '';
     }
     text = String(text);
-    if (text.length > 4) {
-      throw new Error('Only support decode the UTF-8 sequence to a character');
-    }
+    var result = [],
+        char;
+
     index = 0;
     length = text.length;
-    return baseDecode(text);
+    while (char = baseDecode(text)) {
+      result.push(char);
+    }
+    return result.join('');
   };
 })();
 
