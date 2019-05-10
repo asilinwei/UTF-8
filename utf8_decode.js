@@ -46,6 +46,9 @@ var utf8Decode = (function() {
       byte3 = nextByte(text);
       codePoint = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
       if (codePoint >= 0x800 && codePoint <= 0xFFFF) {
+        if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
+          throw new Error('U+' + codePoint.toString(16).toUpperCase() + ' is not a Unicode Scalar Value');
+        }
         return String.fromCodePoint(codePoint);
       }
       throw new Error('Invalid UTF-8 sequence');
@@ -68,7 +71,7 @@ var utf8Decode = (function() {
       return '';
     }
     text = String(text);
-    
+
     var result = [],
         char;
 
